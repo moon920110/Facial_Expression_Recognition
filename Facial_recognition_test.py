@@ -191,7 +191,6 @@ predict_op = tf.argmax(py_x, 1)
 
 saver = tf.train.Saver()
 with tf.Session() as sess :
- #   tf.global_variables_initializer().run(feed_dict={name: 'Test/'})
     saver.restore(sess, FLAGS.root + FLAGS.ckpt)
     print('model restored')
 
@@ -230,6 +229,3 @@ with tf.Session() as sess :
 
     coord.request_stop()
     coord.join(threads)
-
-#if __name__ == "__main__" :
-#    tf.app.run()
