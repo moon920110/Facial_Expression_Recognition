@@ -7,7 +7,6 @@ from __future__ import print_function
 import cv2
 import tensorflow as tf
 import numpy as np # For general purpose array manipulation
-import scipy.fftpack # For FFT2
 import os
 from socket import *
 from select import *
@@ -196,7 +195,7 @@ w1b = init_weights([3, 3, 64, 64], 'w1b')
 w2a = init_weights([3, 3, 64, 128], 'w2a')
 w2b = init_weights([3, 3, 128, 128], 'w2b')
 w3a = init_weights([3, 3, 128, 256], 'w3a')
-w3b = init_weights([3, 3, 256, 256], 'w3n')                                                 # FC 2048 to 512
+w3b = init_weights([3, 3, 256, 256], 'w3n')                                                 
 w3c = init_weights([3, 3, 256, 256], 'w3c')
 w3d = init_weights([3, 3, 256, 256], 'w3d')
 w4a = init_weights([3, 3, 256, 512], 'w4a')
@@ -217,13 +216,12 @@ py_x = model(X, w1a, w1b, w2a, w2b, w3a, w3b, w3c, w3d,
 predict_op = tf.argmax(py_x, 1)
 
 saver = tf.train.Saver()
-with tf.Session() as sess :                                                             # automatically close the session
- #   tf.global_variables_initializer().run(feed_dict={name: 'Test/'})
+with tf.Session() as sess :                                                   
     saver.restore(sess, FLAGS.root + FLAGS.ckpt)
     print('model restored')
 
     coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)                      # **************** super super super important
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)                      
     check = True
 
     while check:
@@ -257,6 +255,3 @@ with tf.Session() as sess :                                                     
 
     coord.request_stop()
     coord.join(threads)
-
-#if __name__ == "__main__" :
-#    tf.app.run()
