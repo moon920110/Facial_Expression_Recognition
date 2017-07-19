@@ -7,11 +7,6 @@ from __future__ import print_function
 import cv2
 import tensorflow as tf
 import numpy as np # For general purpose array manipulation
-import os
-from socket import *
-from select import *
-import sys
-from time import ctime
 """ -------------------------------------------------------------
 ### Facial Expression Recognition
 ### ------------------------------------------------------------- """
@@ -26,64 +21,43 @@ flags.DEFINE_string('ckpt', 'model/vgg_SGD/', 'ckpt directory')
 
 cascPath = '/home/austin/tmp/opencv/data/haarcascades/haarcascade_frontalface_default.xml'
 svPath = '/media/austin/D_drive/Embedded/Test/'
-HOST = ''
-PORT = 9055
-BUFSIZE = 1024
-ADDR = (HOST, PORT)
 
 faceCascade = cv2.CascadeClassifier(cascPath)
 cap = cv2.VideoCapture(0)
-# make socket object
-serverSocket = socket(AF_INET, SOCK_STREAM)
-
-# bind server information
-serverSocket.bind(ADDR)
-
-# waiting request
-serverSocket.listen(10)
-connection_list = [serverSocket]
 
 def hom(img):
-    # Number of rows and columns
     rows = img.shape[0]
     cols = img.shape[1]
 
     imgLog = np.log1p(np.array(img, dtype="float") / 255)
 
-    # Create Gaussian mask of sigma = 10
     M = 2 * rows + 1
     N = 2 * cols + 1
     sigma = 10
     (X, Y) = np.meshgrid(np.linspace(0, N - 1, N), np.linspace(0, M - 1, M))
-    centerX = np.ceil(N / 2)
-    centerY = np.ceil(M / 2)
-    gaussianNumerator = (X - centerX) ** 2 + (Y - centerY) ** 2
+    Xc = np.ceil(N / 2)
+    Yc = np.ceil(M / 2)
+    gaussianNumerator = (X - Xc) ** 2 + (Y - Yc) ** 2
 
-    # Low pass and high pass filters
-    Hlow = np.exp(-gaussianNumerator / (2 * sigma * sigma))
-    Hhigh = 1 - Hlow
+    LPF = np.exp(-gaussianNumerator / (2 * sigma * sigma))
+    HPF = 1 - LPF
 
-    # Move origin of filters so that it's at the top left corner to
-    # match with the input image
-    HlowShift = scipy.fftpack.ifftshift(Hlow.copy())
-    HhighShift = scipy.fftpack.ifftshift(Hhigh.copy())
+    LPF_shift = np.fft.ifftshift(LPF.copy())
+    HPF_shift = np.fft.ifftshift(HPF.copy())
 
-    # Filter the image and crop
-    If = scipy.fftpack.fft2(imgLog.copy(), (M, N))
-    Ioutlow = scipy.real(scipy.fftpack.ifft2(If.copy() * HlowShift, (M, N)))
-    Iouthigh = scipy.real(scipy.fftpack.ifft2(If.copy() * HhighShift, (M, N)))
+    img_FFT = np.fft.fft2(imgLog.copy(), (M, N))
+    img_LF = np.real(np.fft.ifft2(img_FFT.copy() * LPF_shift, (M, N)))
+    img_HF = np.real(np.fft.ifft2(img_FFT.copy() * HPF_shift, (M, N)))
 
-    # Set scaling factors and add
     gamma1 = 0.3
     gamma2 = 1.5
-    Iout = gamma1 * Ioutlow[0:rows, 0:cols] + gamma2 * Iouthigh[0:rows, 0:cols]
+    img_adjusting = gamma1*img_LF[0:rows, 0:cols] + gamma2*img_HF[0:rows, 0:cols]
 
-    # Anti-log then rescale to [0,1]
-    Ihmf = np.expm1(Iout)
-    Ihmf = (Ihmf - np.min(Ihmf)) / (np.max(Ihmf) - np.min(Ihmf))
-    Ihmf2 = np.array(255 * Ihmf, dtype="uint8")
+    img_exp = np.expm1(img_adjusting)
+    img_exp = (img_exp - np.min(img_exp)) / (np.max(img_exp) - np.min(img_exp))
+    img_out = np.array(255 * img_exp, dtype="uint8")
 
-    return Ihmf2
+    return img_out
 
 def init_weights(shape, name):
     return tf.Variable(tf.random_normal(shape, stddev=0.01), name = name)
@@ -190,12 +164,12 @@ def model(X, w1a, w1b, w2a, w2b, w3a, w3b, w3c, w3d, w4a, w4b, w4c, w4d, w5a, w5
 X = tf.placeholder("float", [None, 224, 224, 1], name='X')
 Y = tf.placeholder("float", [None, FLAGS.NoC], name='Y')
 
-w1a = init_weights([3, 3, 1, 64], 'w1a')                                                    # 3x3x3 conv, 64 outputs
+w1a = init_weights([3, 3, 1, 64], 'w1a')
 w1b = init_weights([3, 3, 64, 64], 'w1b')
 w2a = init_weights([3, 3, 64, 128], 'w2a')
 w2b = init_weights([3, 3, 128, 128], 'w2b')
 w3a = init_weights([3, 3, 128, 256], 'w3a')
-w3b = init_weights([3, 3, 256, 256], 'w3n')                                                 
+w3b = init_weights([3, 3, 256, 256], 'w3n')
 w3c = init_weights([3, 3, 256, 256], 'w3c')
 w3d = init_weights([3, 3, 256, 256], 'w3d')
 w4a = init_weights([3, 3, 256, 512], 'w4a')
@@ -216,12 +190,13 @@ py_x = model(X, w1a, w1b, w2a, w2b, w3a, w3b, w3c, w3d,
 predict_op = tf.argmax(py_x, 1)
 
 saver = tf.train.Saver()
-with tf.Session() as sess :                                                   
+with tf.Session() as sess :
+ #   tf.global_variables_initializer().run(feed_dict={name: 'Test/'})
     saver.restore(sess, FLAGS.root + FLAGS.ckpt)
     print('model restored')
 
     coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)                      
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     check = True
 
     while check:
@@ -255,3 +230,6 @@ with tf.Session() as sess :
 
     coord.request_stop()
     coord.join(threads)
+
+#if __name__ == "__main__" :
+#    tf.app.run()
