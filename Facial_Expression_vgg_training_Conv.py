@@ -18,7 +18,6 @@ import copy, os, time
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-#flags.DEFINE_float('dropout', 0.5, 'dropout_rate')
 flags.DEFINE_float('learning_rate', 0.005, 'learning rate')
 flags.DEFINE_integer('batch_size', 16, 'batch_size')
 flags.DEFINE_integer('test_size', 1, 'test_batch_size')
@@ -132,11 +131,10 @@ def model(X, w1a, w1b, w2a, w2b, w3a, w3b, w3c, w3d, w4a, w4b, w4c, w4d, w5a, w5
 
     return pyx
 
-def load_img(img_queue, label, batch_size):                                             # for test set
+def load_img(img_queue, label, batch_size):                                          
     reader = tf.WholeFileReader()
     filename, content = reader.read(img_queue)
     image = tf.image.decode_jpeg(content, channels=1)
-  #  image = tf.cast(image, tf.float32)  # it changes the color of images
     image.set_shape([224,224,1])
     image_batch, image_label = tf.train.batch([image, label], batch_size=batch_size)    # make batch from queue or something else.
     return image_batch, image_label, filename  # return img batch, img label
@@ -212,12 +210,12 @@ else :
 X = tf.placeholder("float", [None, 224, 224, 1], name='X')
 Y = tf.placeholder("float", [None, FLAGS.NoC], name='Y')
 
-w1a = init_weights([3, 3, 1, 64], 'w1a')                                                    # 3x3x3 conv, 64 outputs
+w1a = init_weights([3, 3, 1, 64], 'w1a')                                                  
 w1b = init_weights([3, 3, 64, 64], 'w1b')
 w2a = init_weights([3, 3, 64, 128], 'w2a')
 w2b = init_weights([3, 3, 128, 128], 'w2b')
 w3a = init_weights([3, 3, 128, 256], 'w3a')
-w3b = init_weights([3, 3, 256, 256], 'w3n')                                                 # FC 2048 to 512
+w3b = init_weights([3, 3, 256, 256], 'w3n')                                                 
 w3c = init_weights([3, 3, 256, 256], 'w3c')
 w3d = init_weights([3, 3, 256, 256], 'w3d')
 w4a = init_weights([3, 3, 256, 512], 'w4a')
@@ -233,7 +231,6 @@ w6b = init_weights([1, 1, 4096, 4096], 'w6b')
 w_o = init_weights([1, 1, 4096, FLAGS.NoC], 'w_o')
 
 phase_train = tf.placeholder(tf.bool, name='phase_train')
-# p_keep_hidden = tf.placeholder("float", name='p_keep_hidden')
 
 py_x = model(X, w1a, w1b, w2a, w2b, w3a, w3b, w3c, w3d,
              w4a, w4b, w4c, w4d, w5a, w5b, w5c, w5d, w6a, w6b, w_o, phase_train)
@@ -243,7 +240,7 @@ predict_op = tf.argmax(py_x, 1)
 
 saver = tf.train.Saver()
 
-with tf.Session() as sess :                                                             # automatically close the session
+with tf.Session() as sess :                                                             
 
     if FLAGS.is_training :
         tf.global_variables_initializer().run(feed_dict={phase_train:True})
@@ -255,8 +252,8 @@ with tf.Session() as sess :                                                     
     start_time2 = time.time()
 
     coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)                      # **************** super super super important
-
+    threads = tf.train.start_queue_runners(sess=sess, coord=coord)                      
+    
     start = time.time()
 
     print ('start')
