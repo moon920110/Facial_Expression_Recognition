@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import print_function
 import cv2
 import tensorflow as tf
-import numpy as np # For general purpose array manipulation
+import numpy as np 
 """ -------------------------------------------------------------
 ### Facial Expression Recognition
 ### ------------------------------------------------------------- """
