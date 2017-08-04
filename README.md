@@ -1,5 +1,5 @@
 # Facial_Expression_Recognition
-Details are at ausome.tistory.com (Korean)
+Details are on ausome.tistory.com (Korean)
 
 You should gather the training data by yourself. I gathered the training data from open sources as like CMU, Jaffe, Yale, etc and from google image, my friends' face.
 
